@@ -20,6 +20,7 @@ public class LevelManager : MonoBehaviour
     public HospitalManager hospitalManagers;
     public int waterTank = 50;
     public float gameSpeed = 0.25f;
+    public GameObject pauseMenuUI;
 
     public TextMeshProUGUI moneyUI;
     public int money = 10;
@@ -95,15 +96,22 @@ public class LevelManager : MonoBehaviour
     public void PauseLevel()
     {
         Time.timeScale = 0f;
+        pauseMenuUI.SetActive(true);
     }
     public void ResumeLevel()
     {
         Time.timeScale = 1f;
+        pauseMenuUI.SetActive(false);
     }
 
     public void LoadNextLevel()
     {
         SceneManager.LoadScene(nextLevelName);
+    }
+
+    public void LoadMainMenu()
+    {
+        SceneManager.LoadScene("MainMenu");
     }
 
     public bool TryProvideWater()
@@ -115,10 +123,12 @@ public class LevelManager : MonoBehaviour
         }
         else
         {
-            foreach (PipeManagement pipe in Object.FindObjectsByType<PipeManagement>(FindObjectsSortMode.None))
+            foreach(AreaManagement pipeScript in areaManagements)
             {
-                pipe.pipeState = false;
+                // set pipe state to false
+                pipeScript.pipeManagement.pipeState = false;
             }
+            hospitalManagers.pipeManagement.pipeState = false;
         }
         return false;
     }
@@ -135,6 +145,7 @@ public class LevelManager : MonoBehaviour
         {
             isTimerPaused = true;
             populationManagement.GameFailedUI.SetActive(true);
+            populationManagement.FailReason.text = "You are out of money!";
 
         }
     }

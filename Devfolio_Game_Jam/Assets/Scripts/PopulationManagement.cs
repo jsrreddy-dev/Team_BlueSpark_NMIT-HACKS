@@ -3,6 +3,7 @@ using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.SceneManagement;
 using TMPro;
+using UnityEngine.UI;
 
 public class PopulationManagement : MonoBehaviour
 {
@@ -14,6 +15,7 @@ public class PopulationManagement : MonoBehaviour
     public int deathThreshold = 10; // Set this to your game over threshold
 
     public GameObject GameFailedUI;
+    public TextMeshProUGUI FailReason;
 
     public LevelManager levelManager;
 
@@ -26,9 +28,13 @@ public class PopulationManagement : MonoBehaviour
     public TextMeshProUGUI CurrentPopulation;
     public TextMeshProUGUI CurrentSick;
     public TextMeshProUGUI CurrentDead;
-    public TextMeshProUGUI LevelMedal;
+    public RawImage MedalImage;
 
-    public string levelMedal;
+
+    public Texture PlatinumMedal;
+    public Texture GoldMedal;
+    public Texture SilverMedal;
+    public Texture BronzeMedal;
 
     private void Start()
     {
@@ -53,6 +59,7 @@ public class PopulationManagement : MonoBehaviour
         {
             levelManager.isTimerPaused = true;
             GameFailedUI.SetActive(true);
+            FailReason.text = "Game Over! Too many deaths!";
         }
     }
 
@@ -83,24 +90,32 @@ public class PopulationManagement : MonoBehaviour
         CurrentPopulation.text = "Current Population: " + currentPopulation.ToString();
         CurrentSick.text = "Current Sick: " + currentSick.ToString();
         CurrentDead.text = "Current Dead: " + currentDead.ToString();
-        LevelMedal.text = "Level Medal: " + levelMedal.ToString();
 
-        if (currentDead == 0)
-            levelMedal = "Platinum";
-        else if (currentDead <= 2)
-            levelMedal = "Gold";
-        else if (currentDead <= 5)
-            levelMedal = "Silver";
-        else if (currentDead <= 10)
-            levelMedal = "Bronze";
+        if (currentDead < 5)
+        {
+            MedalImage.texture = PlatinumMedal;
+        }
+        else if (currentDead < 10)
+        {
+            MedalImage.texture = GoldMedal;
+        }
+        else if (currentDead < 15)
+        {
+            MedalImage.texture = SilverMedal;
+        }
         else
-            levelMedal = "No Medal";
+        {
+            MedalImage.texture = BronzeMedal;
+        }
     }
-
-   
 
     public void resetLevel()
     {
         SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+    }
+
+    public void quit()
+    {
+        Application.Quit();
     }
 }

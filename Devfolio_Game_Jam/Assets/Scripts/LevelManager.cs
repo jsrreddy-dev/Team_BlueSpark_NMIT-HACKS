@@ -6,7 +6,6 @@ using UnityEngine.SceneManagement;
 public class LevelManager : MonoBehaviour
 {
     public int LevelNo;
-    public int minWater = 50;
     public float levelTimer; // in seconds
     public float currentTime;
     public bool isTimerPaused = false;

@@ -13,54 +13,70 @@ public class LevelManager : MonoBehaviour
     string nextLevelName;
 
     public GameObject GameCompletedUI;
-    public int currentPopulation;
-    public int maxPopulation;
-    public int currentSick;
-    public int currentDead;
-    public string levelMedal;
-    public TextMeshProUGUI MaxPopulation;
-    public TextMeshProUGUI CurrentPopulation;
-    public TextMeshProUGUI CurrentSick;
-    public TextMeshProUGUI CurrentDead;
-    public TextMeshProUGUI LevelMedal;
     public TextMeshProUGUI timer;
     public TextMeshProUGUI tankWater;
     public PopulationManagement populationManagement;
     public AreaManagement[] areaManagements;
     public HospitalManager hospitalManagers;
     public int waterTank = 50;
+    public float gameSpeed = 0.25f;
+
+    public TextMeshProUGUI moneyUI;
+    public int money = 10;
+
+    public GameObject LevelSummeryIntro;
+
 
     private void Start()
     {
+        LevelSummeryIntro.SetActive(true);
+        // PAUSE GAME AT START
+        Time.timeScale = 0f;
+
         nextLevelName = $"Level {LevelNo + 1}";
         int totalPopulation = populationManagement.maxPopulation;
         int totalArea = areaManagements.Length;
-        int totalHospital = 1;
-        int total = totalArea + totalHospital;
-        int[] populations = new int[total];
+
+        // Divide the whole population among the 3 areas randomly
+        int[] populations = new int[totalArea];
         int remainingPopulation = totalPopulation;
-        for (int i = 0; i < total; i++)
+        for (int i = 0; i < totalArea - 1; i++)
         {
-            populations[i] = Random.Range(1, remainingPopulation / (total - i));
+            // Ensure at least 1 person per area, and randomize the rest
+            int maxForThisArea = remainingPopulation - (totalArea - i - 1);
+            populations[i] = Random.Range(1, maxForThisArea + 1);
             remainingPopulation -= populations[i];
         }
+        populations[totalArea - 1] = remainingPopulation; // Assign the rest to the last area
+
         for (int i = 0; i < totalArea; i++)
         {
             areaManagements[i].areaPopulation = populations[i];
             areaManagements[i].waterNeeded = populations[i];
             areaManagements[i].currentWater = 0;
         }
+
+        foreach (var area in areaManagements)
+        {
+            area.gameSpeed = gameSpeed;
+        }
+        if (hospitalManagers != null)
+            hospitalManagers.gameSpeed = gameSpeed;
     }
 
     private void Update()
     {
+
+        moneyUI.text = $"Rs {money.ToString()}";
+
+        if (Time.timeScale == 0f) return; // PAUSE ALL LOGIC
+
         if (!isTimerPaused)
         {
             currentTime += Time.deltaTime;
             if (currentTime >= levelTimer)
             {
                 isTimerPaused = true;
-                updateGameOverUI();
                 GameCompletedUI.SetActive(true);
             }
         }
@@ -71,29 +87,18 @@ public class LevelManager : MonoBehaviour
         tankWater.text = waterTank.ToString();
     }
 
-    void updateGameOverUI()
+    public void StartLevel()
     {
-        currentDead = populationManagement.currentDead;
-        currentSick = populationManagement.currentSick;
-        currentPopulation = populationManagement.currentPopulation;
-        maxPopulation = populationManagement.maxPopulation;
-
-        if (currentDead == 0)
-            levelMedal = "Platinum";
-        else if (currentDead <= 2)
-            levelMedal = "Gold";
-        else if (currentDead <= 5)
-            levelMedal = "Silver";
-        else if (currentDead <= 10)
-            levelMedal = "Bronze";
-        else
-            levelMedal = "No Medal";
-
-        MaxPopulation.text = "Max Population: " + maxPopulation.ToString();
-        CurrentPopulation.text = "Current Population: " + currentPopulation.ToString();
-        CurrentSick.text = "Current Sick: " + currentSick.ToString();
-        CurrentDead.text = "Current Dead: " + currentDead.ToString();
-        LevelMedal.text = "Level Medal: " + levelMedal.ToString();
+        LevelSummeryIntro.SetActive(false);
+        Time.timeScale = 1f;
+    }
+    public void PauseLevel()
+    {
+        Time.timeScale = 0f;
+    }
+    public void ResumeLevel()
+    {
+        Time.timeScale = 1f;
     }
 
     public void LoadNextLevel()
@@ -108,6 +113,30 @@ public class LevelManager : MonoBehaviour
             waterTank--;
             return true;
         }
+        else
+        {
+            foreach (PipeManagement pipe in Object.FindObjectsByType<PipeManagement>(FindObjectsSortMode.None))
+            {
+                pipe.pipeState = false;
+            }
+        }
         return false;
     }
+
+    public void addMoney(int pay)
+    {
+        money += pay;
+    }
+
+    public void removeMoney(int pay)
+    {
+        money -= pay;
+        if (money < 0)
+        {
+            isTimerPaused = true;
+            populationManagement.GameFailedUI.SetActive(true);
+
+        }
+    }
+
 }

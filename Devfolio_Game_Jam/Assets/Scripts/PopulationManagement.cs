@@ -22,12 +22,38 @@ public class PopulationManagement : MonoBehaviour
     public TextMeshProUGUI CurrentSickUI;
     public TextMeshProUGUI CurrentDeadUI;
 
+    public TextMeshProUGUI MaxPopulation;
+    public TextMeshProUGUI CurrentPopulation;
+    public TextMeshProUGUI CurrentSick;
+    public TextMeshProUGUI CurrentDead;
+    public TextMeshProUGUI LevelMedal;
+
+    public string levelMedal;
+
     private void Start()
     {
         currentPopulation = maxPopulation;
         currentSick = 0;
         currentDead = 0;
         GameFailedUI.SetActive(false);
+    }
+    private void Update()
+    {
+
+        if (Time.timeScale == 0f) return;
+
+        MaxPopulationUI.text = maxPopulation.ToString();
+        CurrentPopulationUI.text = currentPopulation.ToString();
+        CurrentSickUI.text = currentSick.ToString();
+        CurrentDeadUI.text = currentDead.ToString();
+
+        updateGameOverUI();
+
+        if (currentDead >= deathThreshold)
+        {
+            levelManager.isTimerPaused = true;
+            GameFailedUI.SetActive(true);
+        }
     }
 
     public void addSick()
@@ -40,7 +66,7 @@ public class PopulationManagement : MonoBehaviour
     {
         currentDead += 1;
         currentSick -= 1;
-        if (currentSick < 0) currentSick = 0;
+        if (currentSick < 0) currentSick = 0; 
     }
 
     public void addSaved()
@@ -50,19 +76,28 @@ public class PopulationManagement : MonoBehaviour
         if (currentSick < 0) currentSick = 0;
     }
 
-    private void Update()
+    void updateGameOverUI()
     {
-        MaxPopulationUI.text = maxPopulation.ToString();
-        CurrentPopulationUI.text = currentPopulation.ToString();
-        CurrentSickUI.text = currentSick.ToString();
-        CurrentDeadUI.text = currentDead.ToString();
 
-        if (currentDead >= deathThreshold)
-        {
-            levelManager.isTimerPaused = true;
-            GameFailedUI.SetActive(true);
-        }
+        MaxPopulation.text = "Max Population: " + maxPopulation.ToString();
+        CurrentPopulation.text = "Current Population: " + currentPopulation.ToString();
+        CurrentSick.text = "Current Sick: " + currentSick.ToString();
+        CurrentDead.text = "Current Dead: " + currentDead.ToString();
+        LevelMedal.text = "Level Medal: " + levelMedal.ToString();
+
+        if (currentDead == 0)
+            levelMedal = "Platinum";
+        else if (currentDead <= 2)
+            levelMedal = "Gold";
+        else if (currentDead <= 5)
+            levelMedal = "Silver";
+        else if (currentDead <= 10)
+            levelMedal = "Bronze";
+        else
+            levelMedal = "No Medal";
     }
+
+   
 
     public void resetLevel()
     {

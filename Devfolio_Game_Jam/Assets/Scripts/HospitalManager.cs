@@ -14,22 +14,31 @@ public class HospitalManager : MonoBehaviour
 
     public int treatPerUpdate = 1;
 
-    private float waterTimer = 0f;
-    private const float waterInterval = 1f;
+    [Header("Game Speed Control")]
+    public float gameSpeed = 1f; // 1 = normal, <1 = slower, >1 = faster
 
-    public float checkInterval = 5f;
+    [Header("Timing (in seconds, before speed adjustment)")]
+    public float baseWaterInterval = 3f; // 3 seconds to fill 1 unit
+    public float baseCheckInterval = 5f; // 5 seconds for sickness/death check
+
+    private float waterTimer = 0f;
     private float checkTimer = 0f;
 
-    public TextMeshProUGUI debug;
+    public TextMeshProUGUI currentWaterUI;
 
     private Queue<int> patientAreaQueue = new Queue<int>();
 
     private void Update()
     {
-        debug.text = $"Hospital Population: {hospitalPopulation}\n" +
-            $"Water Needed: {waterNeeded}\n" +
-            $"Current Water: {currentWater}\n" +
-            $"Pipe State: {pipeManagement.pipeState}";
+        if (Time.timeScale == 0f) return;
+
+        currentWaterUI.text = $"Current Water: {currentWater}";
+
+        float waterInterval = baseWaterInterval;
+        float checkInterval = baseCheckInterval / gameSpeed;
+
+        // Water needed is based on how many patients are in the hospital
+        waterNeeded = hospitalPopulation;
 
         // Water receiving logic
         if (pipeManagement.pipeState)
@@ -40,6 +49,7 @@ public class HospitalManager : MonoBehaviour
                 if (levelManager != null && levelManager.TryProvideWater())
                 {
                     currentWater += 1;
+                    levelManager.addMoney(10);
                 }
                 waterTimer = 0f;
             }
@@ -49,37 +59,48 @@ public class HospitalManager : MonoBehaviour
             waterTimer = 0f;
         }
 
-        // Sickness/death/recovery check
+        // Sickness/death/recovery check every checkInterval seconds (adjusted by game speed)
         checkTimer += Time.deltaTime;
         if (checkTimer >= checkInterval)
         {
-            // Deaths if not enough water
-            if (currentWater < waterNeeded && hospitalPopulation > 0)
+            if (hospitalPopulation > 0 && patientAreaQueue.Count > 0)
             {
-                int deaths = Mathf.Min(treatPerUpdate, hospitalPopulation, patientAreaQueue.Count);
-                for (int i = 0; i < deaths; i++)
+                int canTreat = Mathf.Min(treatPerUpdate, hospitalPopulation, patientAreaQueue.Count);
+
+                // If enough water for all being treated, cure them
+                if (currentWater >= canTreat && canTreat > 0)
                 {
-                    patientAreaQueue.Dequeue();
-                    if (levelManager != null && levelManager.populationManagement != null)
-                        levelManager.populationManagement.addDead();
+                    for (int i = 0; i < canTreat; i++)
+                    {
+                        int areaIndex = patientAreaQueue.Dequeue();
+                        if (areaIndex >= 0 && areaIndex < areaManagements.Length)
+                        {
+                            areaManagements[areaIndex].ReturnRecoveredPeople(1);
+                            levelManager.addMoney(2);
+                        }
+                        if (levelManager != null && levelManager.populationManagement != null)
+                        {
+                            levelManager.populationManagement.addSaved();
+                        }
+                    }
+                    hospitalPopulation -= canTreat;
+                    currentWater -= canTreat;
                 }
-                hospitalPopulation -= deaths;
-                currentWater = 0; // Not enough water, reset
-            }
-            // Recovery if enough water
-            else if (currentWater >= waterNeeded && hospitalPopulation > 0 && patientAreaQueue.Count > 0)
-            {
-                int treated = Mathf.Min(treatPerUpdate, hospitalPopulation, patientAreaQueue.Count);
-                for (int i = 0; i < treated; i++)
+                // If not enough water, people die
+                else if (canTreat > 0 && currentWater <= 0)
                 {
-                    int areaIndex = patientAreaQueue.Dequeue();
-                    if (areaIndex >= 0 && areaIndex < areaManagements.Length)
-                        areaManagements[areaIndex].ReturnRecoveredPeople(1);
-                    if (levelManager != null && levelManager.populationManagement != null)
-                        levelManager.populationManagement.addSaved();
+                    currentWater = 0;
+                    for (int i = 0; i < canTreat; i++)
+                    {
+                        patientAreaQueue.Dequeue();
+                        if (levelManager != null && levelManager.populationManagement != null)
+                        {
+                            levelManager.populationManagement.addDead();
+                            levelManager.addMoney(-5);
+                        }
+                    }
+                    hospitalPopulation -= canTreat;
                 }
-                hospitalPopulation -= treated;
-                currentWater -= waterNeeded * treated;
             }
             checkTimer = 0f;
         }

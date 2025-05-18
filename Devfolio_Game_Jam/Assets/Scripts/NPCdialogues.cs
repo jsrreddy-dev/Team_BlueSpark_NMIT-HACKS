@@ -25,9 +25,11 @@ public class NPCdialogues : MonoBehaviour
     private int currentLine = 0;
     private bool dialogueActive = false;
 
-    // Gemini API constants
-    private const string GEMINI_API_KEY = "AIzaSyARnUJHfqHdPXeM0Q4n1kDY7TUzZnLz6iA";
-    private const string GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=" + GEMINI_API_KEY;
+
+    public GeminiApiConfig geminiConfig; // Assign in Inspector
+
+    private string GeminiApiKey => geminiConfig != null ? geminiConfig.apiKey : "";
+    private string GeminiApiUrl => "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=" + GeminiApiKey;
 
     private void Awake()
     {
@@ -143,7 +145,7 @@ public class NPCdialogues : MonoBehaviour
 
         string jsonBody = FixJsonForGemini(prompt);
 
-        using (UnityWebRequest request = new UnityWebRequest(GEMINI_API_URL, "POST"))
+        using (UnityWebRequest request = new UnityWebRequest(GeminiApiUrl, "POST"))
         {
             byte[] bodyRaw = Encoding.UTF8.GetBytes(jsonBody);
             request.uploadHandler = new UploadHandlerRaw(bodyRaw);

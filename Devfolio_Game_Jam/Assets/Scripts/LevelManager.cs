@@ -105,6 +105,7 @@ public class LevelManager : MonoBehaviour
 
     public void LoadNextLevel()
     {
+        // try to load the next level and if not found, load the main menu
         SceneManager.LoadScene(nextLevelName);
     }
 
